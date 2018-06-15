@@ -6,8 +6,8 @@
 
 
 #Defining section of this utility.
-#DODEBUG=false
-DODEBUG=true
+DODEBUG=false
+#DODEBUG=true
 
 #Make sure the tag-building directory to exist.
 echo "===>Try to make sure tag directory to exist."
@@ -48,7 +48,7 @@ else
     if ${DODEBUG}; then
         echo "RootDir=${RootDir}"
     fi
-    BaseName=$(basename ${RootDir})
+    BaseName=$(basename ${RootDir}).$1
     SrcFiles=${BaseName}.csf
     if [[ -f ${TagsDir}/${SrcFiles} ]]; then
         mv ${TagsDir}/${SrcFiles} ${TagsDir}/${SrcFiles}.bak
@@ -66,6 +66,14 @@ else
         CtagLangId=Python
         echo "Try to create C/C++ source file list for updating cscope database of $2"
         $(find ${RootDir} -name '*.py' -type f > ${TagsDir}/${SrcFiles});;
+    'm')
+        CtagLangId=Make
+        echo "Try to create make source file list for updating cscope database of $2"
+        $(find ${RootDir} -name 'CONFIG' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'CONFIG.local' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name '*.mk' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'Makefile' -type f >> ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'GNUmakefile' -type f >> ${TagsDir}/${SrcFiles});;
     *)
         usage;;
     esac
