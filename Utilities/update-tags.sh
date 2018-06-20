@@ -26,7 +26,7 @@ echo "===>Try to check/parse arguments."
 usage ()
 {
     echo -e "Usage:\n\tupdate-tags.sh <c|b|p> RootDir" 1>&2
-    echo -e "Note:\n\tc\tC and C++ source files\n\tb\tbash scripts\n\tp\tPython scripts" 1>&2
+    echo -e "Note:\n\tc\tC and C++ source files\n\tb\tbash scripts\n\tp\tPython scripts\n\tm\tmake files" 1>&2
     echo -e "\tRootDir\tthe root directory to create/update cscope dababse" 1>&2
     exit 1
 }
@@ -48,7 +48,7 @@ else
     if ${DODEBUG}; then
         echo "RootDir=${RootDir}"
     fi
-    BaseName=$(basename ${RootDir})
+    BaseName=$(basename ${RootDir}).$1
     case $1 in
     'c')
         CtagLangId=C,C++;;
@@ -56,6 +56,8 @@ else
         CtagLangId=Sh;;
     'p')
         CtagLangId=Python;;
+    'm')
+        CtagLangId=Make;;
     *)
         usage;;
     esac
