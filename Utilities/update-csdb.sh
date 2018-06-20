@@ -69,11 +69,12 @@ else
     'm')
         CtagLangId=Make
         echo "Try to create make source file list for updating cscope database of $2"
-        $(find ${RootDir} -name 'CONFIG' -type f > ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'CONFIG.local' -type f > ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name '*.mk' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'GNUmakefile' -type f >> ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'makefile' -type f >> ${TagsDir}/${SrcFiles})
         $(find ${RootDir} -name 'Makefile' -type f >> ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'GNUmakefile' -type f >> ${TagsDir}/${SrcFiles});;
+        $(find ${RootDir} -name 'CONFIG.local' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name 'CONFIG' -type f > ${TagsDir}/${SrcFiles})
+        $(find ${RootDir} -name '*.mk' -type f > ${TagsDir}/${SrcFiles});;
     *)
         usage;;
     esac
