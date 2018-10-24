@@ -57,7 +57,8 @@ else
     'c')
         CtagLangId=C,C++
         echo "Try to create C/C++ source file list for updating cscope database of $2"
-        $(find ${RootDir} -name '*.[h|hpp|c|C|cc|cp|cpp|cxx|c++]' -type f > ${TagsDir}/${SrcFiles});;
+        $(find ${RootDir} -regextype posix-extended -regex '.*\.(h|hpp|c|C|cc|cp|cpp|cxx|c++)' -type f \
+        > ${TagsDir}/${SrcFiles});;
     'b')
         CtagLangId=Sh
         echo "Try to create C/C++ source file list for updating cscope database of $2"
@@ -69,12 +70,8 @@ else
     'm')
         CtagLangId=Make
         echo "Try to create make source file list for updating cscope database of $2"
-        $(find ${RootDir} -name 'GNUmakefile' -type f >> ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'makefile' -type f >> ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'Makefile' -type f >> ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'CONFIG.local' -type f > ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name 'CONFIG' -type f > ${TagsDir}/${SrcFiles})
-        $(find ${RootDir} -name '*.mk' -type f > ${TagsDir}/${SrcFiles});;
+        $(find ${RootDir} -regextype posix-extended -regex 'GNUmakefile|makefile|Makefile' -type f \
+        > ${TagsDir}/${SrcFiles});;
     *)
         usage;;
     esac
