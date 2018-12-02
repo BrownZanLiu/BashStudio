@@ -6,31 +6,31 @@
 
 
 #Defining section of this module.
-DODEBUG=false
-#DODEBUG=true
+LZDEBUG=false
+#LZDEBUG=true
 function GetPackageManagerName()
 {
-    if $DODEBUG; then
+    if $LZDEBUG; then
         echo "Enter into GetPackageManagerName():"
     fi
 
     local vManagers=(yum apt)
-    if $DODEBUG; then
+    if $LZDEBUG; then
         echo "Managers check list: ${vManagers[@]}"
     fi
 
     local vManagerName='unknown'
-    if $DODEBUG; then
+    if $LZDEBUG; then
         echo "Enter into checking loop:"
     fi
     for vMgr in ${vManagers[@]}; do
         vWhereisInfo=$(whereis $vMgr)
-        if $DODEBUG; then
+        if $LZDEBUG; then
             echo -e "\tvWhereisInfo = $vWhereisInfo"
         fi
 
         vRegex="$vMgr *: +/.*/$vMgr"
-        if $DODEBUG; then
+        if $LZDEBUG; then
             echo -e "\tvRegex = $vRegex"
         fi
         if [[ $vWhereisInfo =~ $vRegex ]]; then
@@ -38,7 +38,7 @@ function GetPackageManagerName()
         fi
     done
 
-    if $DODEBUG; then
+    if $LZDEBUG; then
         echo "Answer:"
     fi
     echo -e "$vManagerName\c"
@@ -46,9 +46,9 @@ function GetPackageManagerName()
 
 
 #Testing section of this module.
-#DOTEST=false
-DOTEST=true
-if $DOTEST; then
+#LZTEST=false
+LZTEST=true
+if $LZTEST; then
     echo '=================Test================'
     GetPackageManagerName
     echo

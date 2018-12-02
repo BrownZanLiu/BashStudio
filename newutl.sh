@@ -6,8 +6,8 @@
 
 
 #Defining section of this utility.
-DODEBUG=false
-#DODEBUG=true
+LZDEBUG=false
+#LZDEBUG=true
 #Usage checking.
 if [[ $# -ne 1 ]]; then
     echo -e 'Usage:\n\tnewutl.sh scriptname' >&2
@@ -37,9 +37,16 @@ echo '#Date:' >> $1
 echo '#Description:' >> $1
 echo >> $1
 echo >> $1
-echo '#Defining section of this utility.' >> $1
-echo '#DODEBUG=false' >> $1
-echo 'DODEBUG=true' >> $1
+echo '#Imports.' >> $1
+echo 'source color.sh' >> $1
+echo >> $1
+echo >> $1
+echo '#Global parameters.' >> $1
+echo '#LZDEBUG=false' >> $1
+echo 'LZDEBUG=true' >> $1
+echo >> $1
+echo >> $1
+echo '#Main logic.' >> $1
 
 #Starting edit.
 vim $1

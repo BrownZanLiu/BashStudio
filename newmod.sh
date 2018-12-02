@@ -6,8 +6,8 @@
 
 
 #Defining section of this utility.
-DODEBUG=false
-#DODEBUG=true
+LZDEBUG=false
+#LZDEBUG=true
 #Usage checking.
 if [[ $# -ne 1 ]]; then
     echo -e 'Usage:\n\tnewmod.sh scriptname' >&2
@@ -38,15 +38,22 @@ echo '#Date:' >> $1
 echo '#Description:' >> $1
 echo >> $1
 echo >> $1
-echo '#Defining section of this module.' >> $1
-echo '#DODEBUG=false' >> $1
-echo 'DODEBUG=true' >> $1
+echo '#Imports.' >> $1
+echo 'source color.sh' >> $1
+echo >> $1
+echo >> $1
+echo '#Global parameters.' >> $1
+echo '#LZDEBUG=false' >> $1
+echo 'LZDEBUG=true' >> $1
+echo '#LZTEST=false' >> $1
+echo 'LZTEST=true' >> $1
+echo >> $1
+echo >> $1
+echo '#Module definitions.' >> $1
 echo >> $1
 echo >> $1
 echo '#Testing section of this module.' >> $1
-echo '#DOTEST=false' >> $1
-echo 'DOTEST=true' >> $1
-echo 'if $DOTEST; then' >> $1
+echo 'if $LZTEST; then' >> $1
 echo 'fi' >> $1
 
 #Starting edit.
