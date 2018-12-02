@@ -5,13 +5,23 @@
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
 
-#Defining section of this utility.
-#DODEBUG=false
-DODEBUG=true
+#Imports.
+source color.sh
 
-#Make sure the tag-building directory to exist.
+
+#Global parameters.
+#LZDEBUG=false
+LZDEBUG=true
+
+
+#Main logic.
+if [[ -z "${LZHOME}" ]]; then
+    print_blinking_red "LZHOME undefined."
+    exit 1
+fi
+
 echo "===>Try to make sure tag directory to exist."
-TagsDir=/home/CscopeAndCtags
+TagsDir=${LZHOME}/CscopeAndCtags
 if [[ ! -d ${TagsDir} ]]; then
     mkdir ${TagsDir}
 fi
@@ -45,7 +55,7 @@ else
         echo -e "Only support CentOS and Ubuntu family OSes.\n" 1>&2
         exit 1
     fi
-    if ${DODEBUG}; then
+    if ${LZDEBUG}; then
         echo "RootDir=${RootDir}"
     fi
     BaseName=$(basename ${RootDir}).$1
@@ -67,7 +77,7 @@ echo -e "===>Done\n"
 #Generate ctags files.
 echo "===>Try to generate ctags files."
 cd ${RootDir}
-if ${DODEBUG}; then
+if ${LZDEBUG}; then
     echo "CtagLangId=${CtagLangId}"
     echo "PWD=`pwd`"
 fi
@@ -102,7 +112,7 @@ echo -e "===>Done\n"
 
 #Register ctags file.
 echo "===>Try to register ctags file."
-if ${DODEBUG}; then
+if ${LZDEBUG}; then
     echo "tags file = ${TagsDir}/${BaseName}.tags"
 fi
 LocalVimRc=${HOME}/.vimrc
@@ -114,7 +124,7 @@ ctags_tags_mark()
     fi
     echo -n $(cat ${LocalVimRc} | grep -E 'set[[:blank:]]+tags' | grep $1)
 }
-if ${DODEBUG}; then
+if ${LZDEBUG}; then
     echo "ctags_tags_mark ${TagsDir}/${BaseName}.tags = $(ctags_tags_mark ${TagsDir}/${BaseName}.tags)"
 fi
 if [[ -z $(ctags_tags_mark ${TagsDir}/${BaseName}.tags) ]]; then

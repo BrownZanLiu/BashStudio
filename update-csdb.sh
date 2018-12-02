@@ -5,13 +5,23 @@
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
 
-#Defining section of this utility.
-DODEBUG=false
-#DODEBUG=true
+#Imports
+source color.sh
 
-#Make sure the tag-building directory to exist.
+
+#Global parameters.
+LZDEBUG=false
+#LZDEBUG=true
+
+
+#Main logic.
+if [[ -z "${LZHOME}" ]]; then
+    print_blinking_red "LZHOME undefined."
+    exit 1
+fi
+
 echo "===>Try to make sure tag directory to exist."
-TagsDir=/home/CscopeAndCtags
+TagsDir=${LZHOME}/CscopeAndCtags
 if [[ ! -d ${TagsDir} ]]; then
     mkdir ${TagsDir}
 fi
@@ -45,7 +55,7 @@ else
         echo -e "Only support CentOS and Ubuntu family OSes.\n" 1>&2
         exit 1
     fi
-    if ${DODEBUG}; then
+    if ${LZDEBUG}; then
         echo "RootDir=${RootDir}"
     fi
     BaseName=$(basename ${RootDir}).$1
@@ -57,8 +67,9 @@ else
     'c')
         CtagLangId=C,C++
         echo "Try to create C/C++ source file list for updating cscope database of $2"
-        $(find ${RootDir} -regextype posix-extended -regex '.*\.(h|hpp|c|C|cc|cp|cpp|cxx|c++)' -type f \
-        > ${TagsDir}/${SrcFiles});;
+        $(find ${RootDir} -regextype posix-extended \
+            -regex '.*\.(h|hpp|c|cc|cpp|cxx)' \
+            -type f > ${TagsDir}/${SrcFiles});;
     'b')
         CtagLangId=Sh
         echo "Try to create C/C++ source file list for updating cscope database of $2"
@@ -138,7 +149,7 @@ echo -e "===>Done.\n"
 #Install this cscope database file.
 echo -e "===>Try to install the cscope database file."
 LocalVimRc="${HOME}/.vimrc"
-if ${DODEBUG}; then
+if ${LZDEBUG}; then
     echo "The local vimrc file is ${LocalVimRc}"
 fi
 CsDbAppendMark='" Repeat above if clause for more database files.'
@@ -210,7 +221,7 @@ cscope_section_csdb_insert()
         echo "Usage: cscope_section_csdb_insert CsDbAbsPathname" 1>&2
         exit 1
     fi
-    if ${DODEBUG}; then
+    if ${LZDEBUG}; then
         echo "cscope_section_csdb_mark $1= $(cscope_section_csdb_mark $1)"
     fi
     if [[ -n $(cscope_section_csdb_mark $1) ]]; then
@@ -231,7 +242,7 @@ cscope_section_csdb_insert()
     rm -f ${LocalVimRc}
     mv ${TempRc} ${LocalVimRc}
 }
-if ${DODEBUG}; then
+if ${LZDEBUG}; then
     echo "cscope_section_mark = $(cscope_section_mark)."
 fi
 if [[ -z $(cscope_section_mark) ]]; then
