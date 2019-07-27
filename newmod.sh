@@ -29,7 +29,7 @@ if [[ ! -x $1 ]]; then
     echo 'Failed to create and make $1 to be excutable.' >&2
     exit 1
 fi
-chmod a+x $1
+#chmod a+x $1
 
 #Making a module skeleton.
 echo '#Brown.LiuZan@copyright' > $1

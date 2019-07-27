@@ -46,8 +46,8 @@ function GetPackageManagerName()
 
 
 #Testing section of this module.
-#LZTEST=false
-LZTEST=true
+LZTEST=false
+#LZTEST=true
 if $LZTEST; then
     echo '=================Test================'
     GetPackageManagerName
