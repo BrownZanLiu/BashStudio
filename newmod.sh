@@ -1,7 +1,7 @@
 #! /usr/bin/bash
-#Brown@copyright
-#Version: 1.0
-#Date: 20180527
+#Brown.LiuZan@copyright
+#Version: 1.1
+#Date: 20190727
 #Description: Used to create a module skeleton.
 
 
@@ -25,16 +25,16 @@ fi
 
 #Creating and setting attributes.
 touch $1
-chmod a+x $1
 if [[ ! -x $1 ]]; then
     echo 'Failed to create and make $1 to be excutable.' >&2
     exit 1
 fi
+chmod a+x $1
 
 #Making a module skeleton.
-echo '#Brown@copyright' > $1
-echo '#Version:' >> $1
-echo '#Date:' >> $1
+echo '#Brown.LiuZan@copyright' > $1
+echo '#Version: 1.0' >> $1
+echo "#Date:`date +%Y-%M-%d`" >> $1
 echo '#Description:' >> $1
 echo >> $1
 echo >> $1

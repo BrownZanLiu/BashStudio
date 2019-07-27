@@ -1,7 +1,7 @@
 #! /usr/bin/bash
-#Brown@copyright
-#Version: 1.0
-#Date: 20180527
+#Brown.LiuZan@copyright
+#Version: 1.1
+#Date: 20190727
 #Description: Used to create a utility skeletion.
 
 
@@ -31,9 +31,9 @@ fi
 
 #Make a utility skeleton.
 echo '#! /usr/bin/bash' > $1
-echo '#Brown@copyright' >> $1
-echo '#Version:' >> $1
-echo '#Date:' >> $1
+echo '#Brown.LiuZan@copyright' >> $1
+echo '#Version: 1.0' >> $1
+echo "#Date: `date +%Y-%M-%d" >> $1
 echo '#Description:' >> $1
 echo >> $1
 echo >> $1
