@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 #Brown@copyright
-#Version: 1.0 
+#Version: 1.0
 #Date: 20180614
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
@@ -31,7 +31,7 @@ if [[ ! -d ${TagsDir} ]]; then
 fi
 echo -e "===>Done\n"
 
-#Usage check and argument handle 
+#Usage check and argument handle
 echo "===>Try to check/parse arguments and collect source files."
 usage ()
 {
@@ -201,6 +201,10 @@ cscope_section_insert()
     echo -e "\tnmap <C-@><C-@>f :vert scs find f <C-R>=expand(\"<cfile>\")<CR><CR>" >> ${LocalVimRc}
     echo -e "\tnmap <C-@><C-@>i :vert scs find i <C-R>=expand(\"<cfile>\")<CR><CR>" >> ${LocalVimRc}
     echo -e "\tnmap <C-@><C-@>d :vert scs find d <C-R>=expand(\"<cword>\")<CR><CR>" >> ${LocalVimRc}
+    echo -e "\tnmap <C-H> <C-W><C-H>" >> ${LocalVimRc}
+    echo -e "\tnmap <C-L> <C-W><C-L>" >> ${LocalVimRc}
+    echo -e "\tnmap <C-J> <C-W><C-J>" >> ${LocalVimRc}
+    echo -e "\tnmap <C-K> <C-W><C-K>" >> ${LocalVimRc}
     echo -e "endif" >> ${LocalVimRc}
 }
 cscope_section_mark()

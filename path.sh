@@ -11,8 +11,8 @@ source color.sh
 #Global parameters.
 #LZDEBUG=false
 LZDEBUG=true
-LZTEST=false
-#LZTEST=true
+#LZTEST=false
+LZTEST=true
 
 
 #Module definitions.
@@ -58,6 +58,7 @@ function GetSubdirectoryList() {
 if $LZTEST; then
     gCwd=`pwd`
     vFileNames=`GetFileList ${gCwd}`
+    echo "File number: ${#vFileNames[@]}"
     for i in ${vFileNames[@]}; do
         echo "File: $i"
     done

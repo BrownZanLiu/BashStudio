@@ -38,8 +38,10 @@ if [[ ! -d ${DIR} ]]; then
 fi
 
 gFileList=`GetFileList ${DIR}`
+echo "file number: ${#gFileList[@]}"
 for i in ${gFileList[@]}; do
     if [[ $i =~ ^${PREFIX}.+ ]]; then
+	echo $i
         mv $i ${i/#${PREFIX}}
     fi
 done
