@@ -33,7 +33,7 @@ fi
 echo '#! /usr/bin/bash' > $1
 echo '#Brown.LiuZan@copyright' >> $1
 echo '#Version: 1.0' >> $1
-echo "#Date: `date +%Y-%M-%d" >> $1
+echo "#Date: `date +%Y-%M-%d`" >> $1
 echo '#Description:' >> $1
 echo >> $1
 echo >> $1
