@@ -10,8 +10,8 @@ source color.sh
 
 
 #Global parameters.
-LZDEBUG=false
-#LZDEBUG=true
+#LZDEBUG=false
+LZDEBUG=true
 
 
 #Main logic.
@@ -29,13 +29,16 @@ if [[ ! -d ${TagsDir} ]]; then
     echo "${TagBuldDir} doesn't exist and failed to create it." 1>&2
     exit 1
 fi
+if ${LZDEBUG}; then
+    echo "TagsDir=${TagsDir}"
+fi
 echo -e "===>Done\n"
 
 #Usage check and argument handle
 echo "===>Try to check/parse arguments and collect source files."
 usage ()
 {
-    echo -e "Usage:\n\tupdate-csdb.sh <c|b|p> RootDir" 1>&2
+    echo -e "Usage:\n\tupdate-csdb.sh <c|b|p> SrcDir" 1>&2
     echo -e "Note:\n\tc\tC and C++ source files\n\tb\tbash scripts\n\tp\tPython scripts" 1>&2
     echo -e "\tRootDir\tthe root directory to create/update cscope dababse" 1>&2
     exit 1
@@ -48,17 +51,17 @@ else
         usage
     fi
     if [[ -n $(whereis readlink) ]]; then
-        RootDir=$(readlink -f $2)
+        SrcDir=$(readlink -f $2)
     elif [[ -n $(whereis readpath) ]]; then
-        RootDir=$(readpath -f $2)
+        SrcDir=$(readpath -f $2)
     else
         echo -e "Only support CentOS and Ubuntu family OSes.\n" 1>&2
         exit 1
     fi
     if ${LZDEBUG}; then
-        echo "RootDir=${RootDir}"
+        echo "SrcDir=${SrcDir}"
     fi
-    BaseName=$(basename ${RootDir}).$1
+    BaseName=$(basename ${SrcDir}).$1
     SrcFiles=${BaseName}.csf
     if [[ -f ${TagsDir}/${SrcFiles} ]]; then
         mv ${TagsDir}/${SrcFiles} ${TagsDir}/${SrcFiles}.bak
@@ -67,21 +70,21 @@ else
     'c')
         CtagLangId=C,C++
         echo "Try to create C/C++ source file list for updating cscope database of $2"
-        $(find ${RootDir} -regextype posix-extended \
+        $(find ${SrcDir} -regextype posix-extended \
             -regex '.*\.(h|hpp|c|cc|cpp|cxx)' \
             -type f > ${TagsDir}/${SrcFiles});;
     'b')
         CtagLangId=Sh
         echo "Try to create C/C++ source file list for updating cscope database of $2"
-        $(find ${RootDir} -name '*.sh' -type f > ${TagsDir}/${SrcFiles});;
+        $(find ${SrcDir} -name '*.sh' -type f > ${TagsDir}/${SrcFiles});;
     'p')
         CtagLangId=Python
         echo "Try to create C/C++ source file list for updating cscope database of $2"
-        $(find ${RootDir} -name '*.py' -type f > ${TagsDir}/${SrcFiles});;
+        $(find ${SrcDir} -name '*.py' -type f > ${TagsDir}/${SrcFiles});;
     'm')
         CtagLangId=Make
         echo "Try to create make source file list for updating cscope database of $2"
-        $(find ${RootDir} -regextype posix-extended -regex 'GNUmakefile|makefile|Makefile' -type f \
+        $(find ${SrcDir} -regextype posix-extended -regex 'GNUmakefile|makefile|Makefile' -type f \
         > ${TagsDir}/${SrcFiles});;
     *)
         usage;;
@@ -100,7 +103,10 @@ echo -e "===>Done\n"
 
 #Generate cscope database file.
 echo "===>Try to generate/update cscope database file."
-cd ${RootDir}
+cd ${TagsDir}
+if ${LZDEBUG}; then
+    echo "CWD=`pwd`"
+fi
 if [[ -f cscope.out || -f cscope.in.out || -f cscope.po.out ]]; then
     rm -f cscope*.out
 fi
@@ -247,7 +253,7 @@ cscope_section_csdb_insert()
     mv ${TempRc} ${LocalVimRc}
 }
 if ${LZDEBUG}; then
-    echo "cscope_section_mark = $(cscope_section_mark)."
+    echo "cscope_section_mark = $(cscope_section_mark)"
 fi
 if [[ -z $(cscope_section_mark) ]]; then
     echo "Insert a new cscope section in ${LocalVimRc}."
