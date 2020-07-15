@@ -7,7 +7,12 @@
 
 #Defining section of this module.
 LZDEBUG=false
-#LZDEBUG=true
+LZTEST=false
+if [[ $# -eq 1 && $1 == "-t" ]]; then
+    LZTEST=true
+    LZDEBUG=true
+fi
+
 function GetPackageManagerName()
 {
     if $LZDEBUG; then
@@ -46,8 +51,6 @@ function GetPackageManagerName()
 
 
 #Testing section of this module.
-LZTEST=false
-#LZTEST=true
 if $LZTEST; then
     echo '=================Test================'
     GetPackageManagerName
@@ -55,5 +58,5 @@ if $LZTEST; then
     echo
 
     vMgr=$(GetPackageManagerName | tail -1)
-    echo "Package manager name: $vMgr" 
+    echo "Package manager name: $vMgr"
 fi
