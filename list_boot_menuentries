@@ -1,0 +1,65 @@
+#! /usr/bin/bash
+
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.0
+# Date: 2023-35-29
+# Description:
+################################################################################
+
+
+####Imports of other module files####
+source lib/environments.sh
+source lib/errno.sh
+source lib/printer.sh
+
+
+####Definition of global parameters####
+gUnitTestEnabled=false
+
+
+####Definition of functions####
+function list_almalinux() {
+	print_green_t "almalinux:"
+	grubby --info=ALL | grep ^kernel
+}
+
+function list_centos() {
+	print_green_t "centos:"
+	awk -F\' '$1=="menuentry " {print $2}' /etc/grub2.cfg | awk '{print $3}'
+}
+
+function list_ubuntu() {
+	print_green_t "ubuntu:"
+	grub-mkconfig |  \
+	grep -iE "menuentry 'Ubuntu, with Linux" |  \
+	awk '{print i++ " : "$1, $2, $3, $4, $5, $6, $7}' |  \
+	grep menuentry
+}
+
+function list_boot_menuentries_main() {
+	case ${OS_ID} in
+	'almalinux')
+		list_almalinux
+		;;
+	'centos')
+		list_centos
+		;;
+	'ubuntu')
+		list_ubuntu
+		;;
+	*)
+		print_red_t "Unsupported os: ${OS_ID}"
+		exit ${EDOM}
+		;;
+	esac
+}
+
+list_boot_menuentries_main
+
+
+####Unit test section####
+if ${gUnitTestEnabled}; then
+    print_bold_green_t "====Unit test begin===="
+    print_bold_green_t "====Unit test end===="
+fi

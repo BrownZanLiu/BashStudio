@@ -1,0 +1,103 @@
+#! /usr/bin/bash
+
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.2
+# Date: 20230329
+# Description: Used to create a module template.
+################################################################################
+
+source lib/errno.sh
+source lib/printer.sh
+
+function usage() {
+	print_bold_green "Usage: newutil [-u|--utility-name <UtilityFileName>]"
+	print_bold_green "               [-h|--help]"
+	print_bold_green "Note:"
+	print_green "    -u <UtilityFileName>, specify the bash utility file name; must be [a-zA-Z0-9_]+"
+}
+
+function check_and_create_empty_utility_file() {
+	local vFileName=$1
+	if ! [[ ${vFileName} =~ [a-zA-Z0-9_]+ ]]; then
+		print_red_t "Invalid bash utility file name: ${vFileName}"
+		usage
+		exit ${EINVAL}
+	fi
+
+	if [[ -f ${vFileName} ]]; then
+		print_yellow_t "Utility file has alread existed: ${vFileName}"
+		exit ${EEXIST}
+	fi
+
+	touch ${vFileName}
+	local vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to create a bash utility template file: ${vFileName}"
+		exit ${EPERM}
+	fi
+
+	chmod a+x ${vFileName}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to make this bash utility template file executable: ${vFileName}"
+		exit ${EPERM}
+	fi
+}
+
+function main() {
+	local vRc
+	local vBashUtilityFileName
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-u' | '--utility-name')
+			i=$((i + 1))
+			vBashUtilityFileName=${!i}
+			check_and_create_empty_utility_file ${vBashUtilityFileName}
+			;;
+		'-h' | '--help')
+			usage
+			exit ${EOK}
+			;;
+		*)
+			usage
+			exit ${EINVAL}
+			;;
+		esac
+	done
+
+	echo '#! /usr/bin/bash' > ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo '################################################################################' >> ${vBashUtilityFileName}
+	echo '# Copyright: brown.liuzan@outlook.com' >> ${vBashUtilityFileName}
+	echo '# Version: 1.0' >> ${vBashUtilityFileName}
+	echo "# Date: $(date +%Y-%M-%d)" >> ${vBashUtilityFileName}
+	echo '# Description:' >> ${vBashUtilityFileName}
+	echo '################################################################################' >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo '####Imports of other module files####' >> ${vBashUtilityFileName}
+	echo 'source lib/environments.sh' >> ${vBashUtilityFileName}
+	echo 'source lib/errno.sh' >> ${vBashUtilityFileName}
+	echo 'source lib/printer.sh' >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo '####Definition of global parameters####' >> ${vBashUtilityFileName}
+	echo 'gUnitTestEnabled=false' >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo '####Definition of functions####' >> ${vBashUtilityFileName}
+	echo "function ${vBashUtilityFileName}_main() {" >> ${vBashUtilityFileName}
+	echo '}' >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo "${vBashUtilityFileName}_main \"\$@\"" >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo >> ${vBashUtilityFileName}
+	echo '####Unit test section####' >> ${vBashUtilityFileName}
+	echo 'if ${gUnitTestEnabled}; then' >> ${vBashUtilityFileName}
+	echo '    print_bold_green_t "====Unit test begin===="' >> ${vBashUtilityFileName}
+	echo '    print_bold_green_t "====Unit test end===="' >> ${vBashUtilityFileName}
+	echo 'fi' >> ${vBashUtilityFileName}
+}
+
+main "$@"

@@ -5,7 +5,7 @@
 
 
 #Imports.
-source printer.sh
+source lib/printer.sh
 
 
 #Global parameters.

@@ -1,62 +1,118 @@
 #! /usr/bin/bash
-#Brown.LiuZan@copyright
-#Version: 1.1
-#Date: 20190727
-#Description: Used to create a module skeleton.
 
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.2
+# Date: 20230329
+# Description: Used to create a module template.
+################################################################################
 
-#Defining section of this utility.
-LZDEBUG=false
-#LZDEBUG=true
-#Usage checking.
-if [[ $# -ne 1 ]]; then
-    echo -e 'Usage:\n\tnewmod.sh scriptname' >&2
-    echo -e 'Note:\n\tThe scriptname should end with ".sh".' >&2
-    exit 1
-fi
-if [[ ! $1 =~ .+\.sh ]]; then
-    echo 'The given script name should end with ".sh".' >&2
-    exit 1
-fi
-if [[ -f $1 ]]; then
-    echo 'The given scriptname has existed.' >&2
-    exit 1
-fi
+source lib/errno.sh
+source lib/printer.sh
 
-#Creating and setting attributes.
-touch $1
-if [[ ! -x $1 ]]; then
-    echo 'Failed to create and make $1 to be excutable.' >&2
-    exit 1
-fi
-#chmod a+x $1
+function usage() {
+	print_bold_green "Usage: newmod [-m|--module-name <ModuleFileName>]"
+	print_bold_green "              [-h|--help]"
+	print_bold_green "Note:"
+	print_green "    -m <ModuleFileName>, specify the bash module file name; must be [a-zA-Z0-9_]+.sh"
+}
 
-#Making a module skeleton.
-echo '################################################################################' > $1
-echo '#Copyright: brown.liuzan@outlook.com' >> $1
-echo '#Version: 1.0' >> $1
-echo "#Date: $(date +%Y-%M-%d)" >> $1
-echo '#Description:' >> $1
-echo '################################################################################' >> $1
-echo >> $1
-echo >> $1
-echo '#Imports.' >> $1
-echo 'source printer.sh' >> $1
-echo >> $1
-echo >> $1
-echo '#Global parameters.' >> $1
-echo '#LZDEBUG=false' >> $1
-echo 'LZDEBUG=true' >> $1
-echo '#LZTEST=false' >> $1
-echo 'LZTEST=true' >> $1
-echo >> $1
-echo >> $1
-echo '#Module definitions.' >> $1
-echo >> $1
-echo >> $1
-echo '#Testing section of this module.' >> $1
-echo 'if $LZTEST; then' >> $1
-echo 'fi' >> $1
+function check_and_create_empty_modfile() {
+	local vRc
 
-#Starting edit.
-vim $1
+	mkdir -p lib
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to create lib dir of module files."
+		exit ${EPERM}
+	fi
+
+	local vFileName=$1
+	if ! [[ ${vFileName} =~ lib/[a-zA-Z0-9_]+.sh ]]; then
+		print_red_t "Invalid module file name: ${vFileName}"
+		usage
+		exit ${EINVAL}
+	fi
+
+	if [[ -f ${vFileName} ]]; then
+		print_yellow_t "Module file has alread existed: ${vFileName}"
+		exit ${EEXIST}
+	fi
+
+	touch ${vFileName}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to create empty module file: ${vFileName}"
+		exit ${EPERM}
+	fi
+}
+
+function main() {
+	local vDebug=false
+	local vBashModuleFileName
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-m' | '--module-name')
+			i=$((i + 1))
+			vBashModuleFileName=lib/${!i}
+			check_and_create_empty_modfile ${vBashModuleFileName}
+			;;
+		'-h' | '--help')
+			usage
+			exit ${EOK}
+			;;
+		*)
+			usage
+			exit ${EINVAL}
+			;;
+		esac
+	done
+
+	local vCondMacro=${vBashModuleFileName%.sh}
+	${vDebug} && echo "vCondMacro=${vCondMacro}"
+	vCondMacro=LIUZAN_${vCondMacro#lib/}_SH
+	${vDebug} && echo "vCondMacro=${vCondMacro}"
+	vCondMacro=${vCondMacro^^[a-zA-Z]}
+	${vDebug} && echo "vCondMacro=${vCondMacro}"
+
+	echo '#! /usr/bin/bash' > ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo '################################################################################' >> ${vBashModuleFileName}
+	echo '# Copyright: brown.liuzan@outlook.com' >> ${vBashModuleFileName}
+	echo '# Version: 1.0' >> ${vBashModuleFileName}
+	echo "# Date: $(date +%Y-%M-%d)" >> ${vBashModuleFileName}
+	echo '# Description:' >> ${vBashModuleFileName}
+	echo '################################################################################' >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo "if [[ '\${${vCondMacro}}' != "${vCondMacro}_DEFINED" ]]; then" >> ${vBashModuleFileName}
+	echo "readonly ${vCondMacro}='${vCondMacro}_DEFINED'" >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo '####Imports of other module files####' >> ${vBashModuleFileName}
+	echo 'source lib/environments.sh' >> ${vBashModuleFileName}
+	echo 'source lib/errno.sh' >> ${vBashModuleFileName}
+	echo 'source lib/printer.sh' >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo '####Definition of global parameters####' >> ${vBashModuleFileName}
+	echo 'gUnitTestEnabled=false' >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo '####Definition of functions####' >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo '####Unit test section####' >> ${vBashModuleFileName}
+	echo 'if ${gUnitTestEnabled}; then' >> ${vBashModuleFileName}
+	echo '    print_bold_green_t "====Unit test begin===="' >> ${vBashModuleFileName}
+	echo '    print_bold_green_t "====Unit test end===="' >> ${vBashModuleFileName}
+	echo 'fi' >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo >> ${vBashModuleFileName}
+	echo "fi  # ${vCondMacro}" >> ${vBashModuleFileName}
+}
+
+main "$@"

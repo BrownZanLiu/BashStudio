@@ -1,10 +1,16 @@
-#Brown@copyright
-#Version: 1.0
-#Date: 20181122
-#This script services as a bash module.
-#It provides colorful text printing facility.
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.0
+# Date: 20181122
+# Description:
+#     This script services as a bash module. It provides colorful text printing facility.
+# Note:
+#     This is intended to be include by other bash scripts.
+################################################################################
 
-#This is intended to be include by other bash scripts.
+if [[ ${LIUZAN_PRINTER_SH} != "LIUZAN_PRINTER_SH_DEFINED" ]]; then
+readonly LIUZAN_PRINTER_SH="LIUZAN_PRINTER_SH_DEFINED"
+
 # Reset
 Color_Off='\033[0m'       # Text Reset
 
@@ -93,32 +99,64 @@ function print_black() {
     echo -e "${Black}$@${Color_Off}"
 }
 
+function print_black_t() {
+    echo -e "${Black}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_red() {
     echo -e "${Red}$@${Color_Off}"
+}
+
+function print_red_t() {
+    echo -e "${Red}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_green() {
     echo -e "${Green}$@${Color_Off}"
 }
 
+function print_green_t() {
+    echo -e "${Green}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_yellow() {
     echo -e "${Yellow}$@${Color_Off}"
+}
+
+function print_yellow_t() {
+    echo -e "${Yellow}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_blue() {
     echo -e "${Blue}$@${Color_Off}"
 }
 
+function print_blue_t() {
+    echo -e "${Blue}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_purple() {
     echo -e "${Purple}$@${Color_Off}"
+}
+
+function print_purple_t() {
+    echo -e "${Purple}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_cyan() {
     echo -e "${Cyan}$@${Color_Off}"
 }
 
+function print_cyan_t() {
+    echo -e "${Cyan}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_white() {
     echo -e "${White}$@${Color_Off}"
+}
+
+function print_white_t() {
+    echo -e "${White}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 # Output bold colorful message.
@@ -126,32 +164,64 @@ function print_bold_black() {
     echo -e "${BBlack}$@${Color_Off}"
 }
 
+function print_bold_black_t() {
+    echo -e "${BBlack}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_bold_red() {
     echo -e "${BRed}$@${Color_Off}"
+}
+
+function print_bold_red_t() {
+    echo -e "${BRed}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_bold_green() {
     echo -e "${BGreen}$@${Color_Off}"
 }
 
+function print_bold_green_t() {
+    echo -e "${BGreen}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_bold_yellow() {
     echo -e "${BYellow}$@${Color_Off}"
+}
+
+function print_bold_yellow_t() {
+    echo -e "${BYellow}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_bold_blue() {
     echo -e "${BBlue}$@${Color_Off}"
 }
 
+function print_bold_blue_t() {
+    echo -e "${BBlue}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_bold_purple() {
     echo -e "${BPurple}$@${Color_Off}"
+}
+
+function print_bold_purple_t() {
+    echo -e "${BPurple}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_bold_cyan() {
     echo -e "${BCyan}$@${Color_Off}"
 }
 
+function print_bold_cyan_t() {
+    echo -e "${BCyan}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_bold_white() {
     echo -e "${BWhite}$@${Color_Off}"
+}
+
+function print_bold_white_t() {
+    echo -e "${BWhite}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 # Output blinking colorful message.
@@ -159,31 +229,64 @@ function print_blinking_black() {
     echo -e "${KBlack}$@${Color_Off}"
 }
 
+function print_blinking_black_t() {
+    echo -e "${KBlack}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_blinking_red() {
     echo -e "${KRed}$@${Color_Off}"
+}
+
+function print_blinking_red_t() {
+    echo -e "${KRed}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_blinking_green() {
     echo -e "${KGreen}$@${Color_Off}"
 }
 
+function print_blinking_green_t() {
+    echo -e "${KGreen}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_blinking_yellow() {
     echo -e "${KYellow}$@${Color_Off}"
+}
+
+function print_blinking_yellow_t() {
+    echo -e "${KYellow}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_blinking_blue() {
     echo -e "${KBlue}$@${Color_Off}"
 }
 
+function print_blinking_blue_t() {
+    echo -e "${KBlue}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_blinking_purple() {
     echo -e "${KPurple}$@${Color_Off}"
+}
+
+function print_blinking_purple_t() {
+    echo -e "${KPurple}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
 }
 
 function print_blinking_cyan() {
     echo -e "${KCyan}$@${Color_Off}"
 }
 
+function print_blinking_cyan_t() {
+    echo -e "${KCyan}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
 function print_blinking_white() {
     echo -e "${KWhite}$@${Color_Off}"
 }
 
+function print_blinking_white_t() {
+    echo -e "${KWhite}[$(date +%Y-%m-%d\ %H:%M:%S)]$@${Color_Off}"
+}
+
+fi  # LIUZAN_PRINTER_SH

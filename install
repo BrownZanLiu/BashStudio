@@ -1,0 +1,56 @@
+#! /usr/bin/bash
+
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.0
+# Date: 2023-13-29
+# Description:
+################################################################################
+
+
+####Imports of other module files####
+source lib/environments.sh
+source lib/errno.sh
+source lib/printer.sh
+
+
+####Definition of global parameters####
+gUnitTestEnabled=false
+
+
+####Definition of functions####
+function install_main() {
+	local vRc
+
+	if [[ -z ${BASH_BIN} ]]; then
+		print_red_t "BASH_BIN undefined in environments.sh"
+		exit ${ENOENT}
+	fi
+
+	if ! [[ -d ${BASH_BIN} ]]; then
+		mkdir -p ${BASH_BIN}
+		vRc=$?
+		if [[ ${vRc} -ne 0 ]]; then
+			print_red_t "[${vRc}]Failed to mkdir: ${BASH_BIN}"
+			exit ${EPERM}
+		fi
+	fi
+
+	cp -rf ./* ${BASH_BIN}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to cp ./* into ${BASH_BIN}"
+		exit ${EPERM}
+	fi
+
+	print_green_t "Work done! All tools copyed into ${BASH_BIN}"
+}
+
+install_main "$@"
+
+
+####Unit test section####
+if ${gUnitTestEnabled}; then
+    print_bold_green_t "====Unit test begin===="
+    print_bold_green_t "====Unit test end===="
+fi
