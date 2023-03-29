@@ -5,7 +5,7 @@
 
 
 #Imports.
-source color.sh
+source printer.sh
 
 
 #Global parameters.

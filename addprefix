@@ -2,11 +2,11 @@
 #Brown.LiuZan@copyright
 #Version:1.0
 #Date:20190727
-#Description: Remove specified prefix from all files in given directory.
+#Description: Add given prefix to all files in given directory.
 
 
 #Imports.
-source color.sh
+source printer.sh
 source path.sh
 
 
@@ -16,7 +16,7 @@ LZDEBUG=true
 
 
 function Usage() {
-    local vMsg="Usage: rmprefix.sh <Prefix> [DirName]"
+    local vMsg="Usage: addprefix.sh <Prefix> [DirName]"
     print_bold_green "${vMsg}"
     vMsg="    DirName defaults to current directory."
     print_bold_green "${vMsg}"
@@ -38,11 +38,7 @@ if [[ ! -d ${DIR} ]]; then
 fi
 
 gFileList=`GetFileList ${DIR}`
-echo "file number: ${#gFileList[@]}"
 for i in ${gFileList[@]}; do
-    if [[ $i =~ ^${PREFIX}.+ ]]; then
-	echo $i
-        mv $i ${i/#${PREFIX}}
-    fi
+    mv $i ${PREFIX}$i
 done
 

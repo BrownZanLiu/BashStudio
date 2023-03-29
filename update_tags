@@ -1,12 +1,12 @@
 #! /usr/bin/bash
 #Brown@copyright
-#Version: 1.0 
+#Version: 1.0
 #Date: 20180615
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
 
 #Imports.
-source color.sh
+source printer.sh
 
 
 #Global parameters.
@@ -31,7 +31,7 @@ if [[ ! -d ${TagsDir} ]]; then
 fi
 echo -e "===>Done\n"
 
-#Usage check and argument handle 
+#Usage check and argument handle
 echo "===>Try to check/parse arguments."
 usage ()
 {

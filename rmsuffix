@@ -5,7 +5,8 @@
 #Description: Remove specified prefix from all files in given directory.
 
 
-#Imports.  source color.sh
+#Imports.
+source printer.sh
 source path.sh
 
 
