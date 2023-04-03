@@ -5,8 +5,8 @@
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
 #Imports source /environments.sh
-source /usr/local/bash/bin/lib/environments.sh
-source ${LIB_ROOT}/printer.sh
+source /usr/local/zbash/bin/lib/environments.sh
+source /usr/local/zbash/bin/lib/printer.sh
 
 #Global parameters.
 LZDEBUG=false

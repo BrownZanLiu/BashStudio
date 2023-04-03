@@ -9,9 +9,9 @@
 
 
 ####Imports of other module files####
-source /usr/local/bash/bin/lib/environments.sh
-source /usr/local/bash/bin/lib/errno.sh
-source /usr/local/bash/bin/lib/printer.sh
+source /usr/local/zbash/bin/lib/environments.sh
+source /usr/local/zbash/bin/lib/errno.sh
+source /usr/local/zbash/bin/lib/printer.sh
 
 
 ####Definition of global parameters####
