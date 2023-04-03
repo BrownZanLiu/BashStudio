@@ -7,8 +7,9 @@
 # Description: Used to create a module template.
 ################################################################################
 
-source lib/errno.sh
-source lib/printer.sh
+source ./lib/environments.sh
+source ./lib/errno.sh
+source ./lib/printer.sh
 
 function usage() {
 	print_bold_green "Usage: newmod [-m|--module-name <ModuleFileName>]"
@@ -92,20 +93,19 @@ function main() {
 	echo >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo '####Imports of other module files####' >> ${vBashModuleFileName}
-	echo 'source lib/environments.sh' >> ${vBashModuleFileName}
-	echo 'source lib/errno.sh' >> ${vBashModuleFileName}
-	echo 'source lib/printer.sh' >> ${vBashModuleFileName}
+	echo "source ${ZBASH_LIB_ROOT}/environments.sh" >> ${vBashModuleFileName}
+	echo "source ${ZBASH_LIB_ROOT}/errno.sh" >> ${vBashModuleFileName}
+	echo "source ${ZBASH_LIB_ROOT}/printer.sh" >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo '####Definition of global parameters####' >> ${vBashModuleFileName}
-	echo 'gUnitTestEnabled=false' >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo '####Definition of functions####' >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo >> ${vBashModuleFileName}
 	echo '####Unit test section####' >> ${vBashModuleFileName}
-	echo 'if ${gUnitTestEnabled}; then' >> ${vBashModuleFileName}
+	echo 'if false; then' >> ${vBashModuleFileName}
 	echo '    print_bold_green_t "====Unit test begin===="' >> ${vBashModuleFileName}
 	echo '    print_bold_green_t "====Unit test end===="' >> ${vBashModuleFileName}
 	echo 'fi' >> ${vBashModuleFileName}

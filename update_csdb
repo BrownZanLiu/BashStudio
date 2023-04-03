@@ -4,14 +4,12 @@
 #Date: 20180614
 #Description: Used to create/update and install the cscope database of a special kind of source files under specified diretory.
 
-
-#Imports
-source lib/printer.sh
-
+#Imports source /environments.sh
+source /usr/local/bash/bin/lib/environments.sh
+source ${LIB_ROOT}/printer.sh
 
 #Global parameters.
-#LZDEBUG=false
-LZDEBUG=true
+LZDEBUG=false
 
 
 #Main logic.

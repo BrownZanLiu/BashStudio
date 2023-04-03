@@ -7,8 +7,9 @@
 # Description: Used to create a module template.
 ################################################################################
 
-source lib/errno.sh
-source lib/printer.sh
+source ./lib/environments.sh
+source ./lib/errno.sh
+source ./lib/printer.sh
 
 function usage() {
 	print_bold_green "Usage: newutil [-u|--utility-name <UtilityFileName>]"
@@ -77,13 +78,12 @@ function main() {
 	echo >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo '####Imports of other module files####' >> ${vBashUtilityFileName}
-	echo 'source lib/environments.sh' >> ${vBashUtilityFileName}
-	echo 'source lib/errno.sh' >> ${vBashUtilityFileName}
-	echo 'source lib/printer.sh' >> ${vBashUtilityFileName}
+	echo "source ${ZBASH_LIB_ROOT}/environments.sh" >> ${vBashUtilityFileName}
+	echo "source ${ZBASH_LIB_ROOT}/errno.sh" >> ${vBashUtilityFileName}
+	echo "source ${ZBASH_LIB_ROOT}/printer.sh" >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo '####Definition of global parameters####' >> ${vBashUtilityFileName}
-	echo 'gUnitTestEnabled=false' >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo '####Definition of functions####' >> ${vBashUtilityFileName}
@@ -94,7 +94,7 @@ function main() {
 	echo >> ${vBashUtilityFileName}
 	echo >> ${vBashUtilityFileName}
 	echo '####Unit test section####' >> ${vBashUtilityFileName}
-	echo 'if ${gUnitTestEnabled}; then' >> ${vBashUtilityFileName}
+	echo 'if false; then' >> ${vBashUtilityFileName}
 	echo '    print_bold_green_t "====Unit test begin===="' >> ${vBashUtilityFileName}
 	echo '    print_bold_green_t "====Unit test end===="' >> ${vBashUtilityFileName}
 	echo 'fi' >> ${vBashUtilityFileName}

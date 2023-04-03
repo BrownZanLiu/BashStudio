@@ -8,49 +8,46 @@
 ################################################################################
 
 
+
 ####Imports of other module files####
-source lib/environments.sh
-source lib/errno.sh
-source lib/printer.sh
-
-
-####Definition of global parameters####
-gUnitTestEnabled=false
+ZBASH_BIN_ROOT=/usr/local/zbash/bin
+source ./lib/errno.sh
+source ./lib/printer.sh
 
 
 ####Definition of functions####
 function install_main() {
 	local vRc
 
-	if [[ -z ${BASH_BIN} ]]; then
-		print_red_t "BASH_BIN undefined in environments.sh"
-		exit ${ENOENT}
+	if [[ -z "${ZBASH_BIN_ROOT}" ]]; then
+		print_red_t "ZBASH_BIN_ROOT undefined in ./lib/environments.sh"
+		exit EINVAL
 	fi
 
-	if ! [[ -d ${BASH_BIN} ]]; then
-		mkdir -p ${BASH_BIN}
+	if ! [[ -d ${ZBASH_BIN_ROOT} ]]; then
+		mkdir -p ${ZBASH_BIN_ROOT}
 		vRc=$?
 		if [[ ${vRc} -ne 0 ]]; then
-			print_red_t "[${vRc}]Failed to mkdir: ${BASH_BIN}"
+			print_red_t "[${vRc}]Failed to mkdir: ${ZBASH_BIN_ROOT}"
 			exit ${EPERM}
 		fi
 	fi
 
-	cp -rf ./* ${BASH_BIN}
+	cp -rf ./* ${ZBASH_BIN_ROOT}
 	vRc=$?
 	if [[ ${vRc} -ne 0 ]]; then
-		print_red_t "[${vRc}]Failed to cp ./* into ${BASH_BIN}"
+		print_red_t "[${vRc}]Failed to cp ./* into ${ZBASH_BIN_ROOT}"
 		exit ${EPERM}
 	fi
 
-	print_green_t "Work done! All tools copyed into ${BASH_BIN}"
+	print_green_t "Work done! All tools copyed into ${ZBASH_BIN_ROOT}"
 }
 
 install_main "$@"
 
 
 ####Unit test section####
-if ${gUnitTestEnabled}; then
+if false; then
     print_bold_green_t "====Unit test begin===="
     print_bold_green_t "====Unit test end===="
 fi
