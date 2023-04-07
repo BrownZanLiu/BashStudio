@@ -38,7 +38,7 @@ function install_rhel() {
 	fi
 
 	print_green_t "Setting up rpmbuild enviroments"
-	mkdir -p ${vInstallDir}/rpmbuild/{BUILD, BUILDROOT, RPMS, SOURCES, SPECS, SRPMS}
+	mkdir -p ${vInstallDir}/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 	vRc=$?
 	if [[ ${vRc} -ne 0 ]]; then
 		print_red_t "[${vRc}]Failed to create rpmbuild subdirectories."
