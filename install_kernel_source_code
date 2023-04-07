@@ -1,0 +1,175 @@
+#! /usr/bin/bash
+
+################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Version: 1.0
+# Date: 2023-43-07
+# Description:
+################################################################################
+
+
+####Imports of other module files####
+source /usr/local/zbash/bin/lib/environments.sh
+source /usr/local/zbash/bin/lib/errno.sh
+source /usr/local/zbash/bin/lib/printer.sh
+
+
+####Definition of global parameters####
+
+
+####Definition of functions####
+function usage() {
+	print_bold_green "Usage: install_kernel_source_code [-d|--install-dir <InstallPath>]"
+	print_bold_green "                                  [-h|--help]"
+	print_bold_green "Note:"
+	print_green "    -d|--install-dir <InstallPath>, where the kernel source code tree wil be"  \
+"placed; default to /repo"
+	print_green "    -h|--help, show this help info"
+}
+
+function install_rhel() {
+	local vRc
+	local vDebug=true
+	local vInstallDir="$1"
+
+	if ! [[ -d "${vInstallDir}" ]]; then
+		print_red_t "[$?]Non-existed install dir: ${vInstallDir}"
+		exit ENOENT
+	fi
+
+	print_green_t "Setting up rpmbuild enviroments"
+	mkdir -p ${vInstallDir}/rpmbuild/{BUILD, BUILDROOT, RPMS, SOURCES, SPECS, SRPMS}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to create rpmbuild subdirectories."
+		exit ${vRc}
+	fi
+	echo "%_topdir ${vInstallDir}/rpmbuild" > /root/.rpmmacros
+
+	cd ${vInstallDir}
+
+	print_green_t "Downlaod src.rpm for current os kernel"
+	local vArch=$(uname -m)
+	local vKernelVersion=$(uname -r)
+	vKernelVersion=${vKernelVersion%.${vArch}}
+	${vDebug} && echo "Arch=${vArch}, KernelVersion=${vKernelVersion}"
+	local vSrcRpm=kernel-${vKernelVersion}.src.rpm
+	rm -f "${vSrcRpm}"
+	dnf download --source kernel
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to download kerenl srouce pacakge."
+		exit ${vRc}
+	fi
+
+	print_green_t "Install src.rpm"
+	if ! [[ -f "${vSrcRpm}" ]]; then
+		print_red_t "[${vRc}]No expected src.rpm founc, name spec changed? Check it, fix me."
+		exit ENOENT
+	fi
+	rpm -i "${vSrcRpm}" 2>&1 | grep -v 'exist'
+
+	print_green_t "Generating kernel source tree"
+	cd ${vInstallDir}/rpmbuild/SPECS
+	rpmbuild -bp --target=${vArch} kernel.spec
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to generate kernel source tree."
+		exit ${vRc}
+	fi
+
+	print_green_t "Install kernel source tree"
+	cd ${vInstallDir}/rpmbuild/BUILD/kernel-${vKernelVersion}
+	local vKernelTreeDir="linux-${vKernelVersion%_*}.${vArch}"
+	cp -r ${vKernelTreeDir} ${vInstallDir}
+
+	print_green_t "Initialize git repository"
+	cd ${vInstallDir}/${vKernelTreeDir}
+	git config --global init.defaultbranch master
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to set up init.defaultbranch"
+		exit ${vRc}
+	fi
+	git config --global user.name brown.liuzan
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to set up user.name"
+		exit ${vRc}
+	fi
+	git config --global user.email brown.liuzan@outlook.com
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to set up user.email"
+		exit ${vRc}
+	fi
+	git init
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to git init"
+		exit ${vRc}
+	fi
+	git add .
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to git add ."
+		exit ${vRc}
+	fi
+	git commit -m "${vKernelVersion}"
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red_t "[${vRc}]Failed to git commit"
+		exit ${vRc}
+	fi
+}
+
+function install_debian() {
+	local vInstallDir=$1
+}
+
+function install_kernel_source_code_main() {
+	local vRc
+	local vInstallDir=/repo
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-d' | '--install-dir')
+			i=$((i + 1))
+			vInstallDir=${!i}
+			;;
+		'-h' | '--help')
+			usage
+			exit ${EOK}
+			;;
+		*)
+			usage
+			exit ${EINVAL}
+			;;
+		esac
+	done
+
+	if ! [[ -d "${vInstallDir}" ]]; then
+		print_red_t "[$?]Non-existed install dir: ${vInstallDir}"
+		exit ENOENT
+	fi
+
+	case ${OS_ID} in
+	'centos' | 'almalinux')
+		install_rhel "${vInstallDir}"
+		;;
+	'ubuntu')
+		install_debian "${vInstallDir}"
+		;;
+	*)
+		exit EINVAL
+		;;
+	esac
+}
+
+install_kernel_source_code_main "$@"
+
+
+####Unit test section####
+if false; then
+    print_bold_green_t "====Unit test begin===="
+    print_bold_green_t "====Unit test end===="
+fi
