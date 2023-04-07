@@ -45,5 +45,7 @@ readonly EMLINK=31
 readonly EPIPE=32
 readonly EDOM=33
 readonly ERANGE=34
+readonly EPROTOTYPE=91
+readonly EOPNOTSUPP=95
 
 fi  # LIUZAN_ERRNO_SH
