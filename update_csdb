@@ -23,12 +23,12 @@ function usage () {
     print_bold_green "Usage: "
     print_bold_green "    update-csdb [-d|--src-dir <SourceTreeRootDir>]"
     print_bold_green "                [-D|--cscope-db-dir <CscopeDbDir>]"
-    print_bold_green "                [-t|--src-type <c|b|p>]"
+    print_bold_green "                [-t|--src-type <c|b|p|j>]"
     print_bold_green "                [-h|--help]"
 	print_bold_green "Note: "
 	print_green "    -d|--src-dir <SourceTreeRootDir>, the root directory of source code tree"
 	print_green "    -D|--cscope-db-dir <CscopeDbDir>, the directory of cscope DB"
-	print_green "    -t|--src-type <c|b|p>, c for C/C++; b for bash; p for python"
+	print_green "    -t|--src-type <c|b|p>, c for C/C++; b for bash; p for python; j for Java"
 }
 
 function cscope_section_insert() {
@@ -155,7 +155,7 @@ function update_csdb_main() {
 		print_red_t "Neither of readlink or readpath found."
 		exit ${EPERM}
 	fi
-	if ! [[ ${vSrcType} =~ ^[c|b|p]$ ]]; then
+	if ! [[ ${vSrcType} =~ ^[c|b|p|j]$ ]]; then
 		print_red_t "Unsported source file type: ${vSrcType}"
 		exit ${EPROTOTYPE}
 	fi
@@ -169,6 +169,9 @@ function update_csdb_main() {
 		;;
 	'p')
 		vTypeStr=Python
+		;;
+	'j')
+		vTypeStr=Java
 		;;
 	esac
 	if ! [[ -d ${vCscopeHome} ]]; then
@@ -202,6 +205,10 @@ function update_csdb_main() {
 	'p')
 		print_green_t "Try to create Python source file list for updating cscope database"
 		find ${vSrcRootDir} -name '*.py' -type f > ${vCscopeHome}/${vSrcFiles}
+	    ;;
+	'j')
+		print_green_t "Try to create Python source file list for updating cscope database"
+		find ${vSrcRootDir} -name '*.java' -type f > ${vCscopeHome}/${vSrcFiles}
 	    ;;
 	'm')
 		print_green_t "Try to create make source file list for updating cscope database"
