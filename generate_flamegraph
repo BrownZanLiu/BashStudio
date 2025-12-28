@@ -1,0 +1,163 @@
+#! /usr/bin/bash
+
+source lib/errno.sh
+source lib/environments.sh
+source lib/printer.sh
+
+function usage() {
+	print_bold_green "Usage:"
+	print_green "\t$0 [-C|--cpu <CpuId>] [-p|--pid <PID>] [-d|--duration <Secs>] [-h|--help]"
+	print_bold_green "Notes:"
+	print_green "\t-C <CpuId>, consider only CPU specified by <CpuId>; all CPUs by default"
+	print_green "\t-p <PID>, consider only process specified by <PID>; all processes by default"
+	print_green "\t-d <Secs>, duration in seconds to do perf recording; 10 secs by default"
+	print_bold_green "Examples:"
+	print_green "1) Generate a flame graph file of the whole system under /tmp"
+	print_green "\t$0"
+	print_green "2) Generate a flame graph file for CPU 0 under /tmp"
+	print_green "\t$0 -C 0"
+	print_green "3) Generate a flame graph file for Process 988 under /tmp"
+	print_green "\t$0 -p 988"
+	print_green "4) Generate a flame graph file for Process 988 on CPU 0 under /tmp"
+	print_green "\t$0 -C 0 -p 988"
+	print_green "5) Generate a flame graph file in 60 secs under /tmp"
+	print_green "\t$0 -d 60"
+}
+
+function install_perf_if_need() {
+	perf --version > /dev/null
+	local vRc=$?
+	if [[ "${vRc}" -eq 0 ]]; then
+		print_green "=======================version info of perf==========================="
+		perf --version
+		print_green "======================================================================"
+		echo
+		return 0
+	fi
+
+	echo
+	print_yellow "No perf installed. Try to install it."
+	case "${OS_ID}" in
+		"centos"|"tencentos"|"tlinux")
+			yum install -y perf
+			vRc=$?
+			;;
+		"ubuntu")
+			apt install -y linux-tools-$(uname -r)
+			vRc=$?
+			;;
+		*)
+			print_red "Unsupported OS: ${OS_ID}"
+			return 14
+			;;
+	esac
+
+	echo
+	if [[ ${vRc} -eq 0 ]]; then
+		print_green "=======================version info of perf==========================="
+		perf --version
+		print_green "======================================================================"
+	fi
+	return ${vRc}
+}
+
+function generate_flamegraph_main() {
+	local vCpuId=-1
+	local vPid=-1
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-C' | '--cpu')
+			((++i))
+			vCpuId=${!i}
+			;;
+		'-p' | '--pid')
+			((++i))
+			vPid=${!i}
+			;;
+		'-h' | '--help')
+			usage $0
+			exit $EOK
+			;;
+		*)
+			usage $0
+			exit $EINVAL
+			;;
+		esac
+	done
+
+	local vBinDir="$(dirname $(realpath $0))"
+	cd /tmp
+
+	install_perf_if_need
+	local vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red "[${vRc}]Perf has't been installed and failed to be installed."
+		exit 14
+	fi
+
+	local vCmd="perf record -F 99 -g"
+	if [[ ${vCpuId} -eq -1 ]]; then
+		vCmd="${vCmd} -a"
+	elif [[ ${vCpuId} -ge 0 ]] && [[ ${vCpuId} -lt $(nproc) ]]; then
+		vCmd="${vCmd} -C ${vCpuId}"
+	else
+		print_red "Invalid CPUID: ${vCpuId}\nShould be in: [0, $(nproc))"
+		exit 14
+	fi
+	if [[ ${vPid} -ne -1 ]] && [[ -d "/proc/${vPid}" ]]; then
+		vCmd="${vCmd} -p ${vPid}"
+	elif [[ ${vPid} -ne -1 ]] && [[ ! -d "/proc/${vPid}" ]]; then
+		print_red "Non-existed pid: ${vPid}"
+		exit 14
+	fi
+	vCmd="${vCmd} -- sleep 10"
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]Run cmd: ${vCmd}"
+	${vCmd}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red "Failed to run cmd: ${vCmd}"
+		exit 14
+	fi
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]done"
+	echo
+
+	vCmd="perf script --header"
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]Run cmd: ${vCmd} > out.stacks"
+	${vCmd} > out.stacks
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red "Failed to run cmd: ${vCmd}"
+		exit 14
+	fi
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]done"
+	echo
+
+	vCmd="${vBinDir}/FlameGraph/stackcollapse-perf.pl"
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]Run cmd: ${vCmd} < out.stacks > out.mid"
+	${vCmd} < out.stacks > out.mid
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red "Failed to run cmd: ${vCmd}"
+		exit 14
+	fi
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]done"
+	echo
+
+	local vFgFile="out_$(date +'%Y%m%d_%H%M%S').svg"
+	vCmd="${vBinDir}/FlameGraph/flamegraph.pl --hash"
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]Run cmd: ${vCmd} < out.mid > ${vFgFile}"
+	${vCmd} < out.mid > ${vFgFile}
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+		print_red "Failed to run cmd: ${vCmd}"
+		exit 14
+	fi
+	print_green "[$(date +'%Y-%m-%d %H:%M:%S')]done"
+	echo
+
+	echo "================================================================================"
+	print_bold_green "Work done! Check the flame graph file: /tmp/${vFgFile}"
+	echo "================================================================================"
+}
+
+generate_flamegraph_main "$@"
