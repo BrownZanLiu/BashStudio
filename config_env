@@ -1,45 +1,111 @@
 #! /usr/bin/bash
-#Brown@copyright
-#Version: 1.0
-#Date: 20180626
-#Description: Configure user information of repository for commiting code.
 
+###############################################################################################
+# Author:
+#	brown.liuzan
+# Copyright owner:
+#	brown.liuzan
+# Email:
+#	brown.liuzan@outlook.com
+# Description:
+#	1) Configure bash.
+#	2) Configure vim.
+#	3) Configure git.
+###############################################################################################
 
-#Defining section of this utility.
-#DODEBUG=false
-DODEBUG=true
+source lib/errno.sh
+source lib/environments.sh
+source lib/printer.sh
 
-usage()
+function usage()
 {
-	echo -e "Usage: brown-git-config.sh [l|<g>]" 1>&2
-	echo -e "\n\tl\tlocal git repository setting, default" 1>&2
-	echo -e "\n\tg\tglobal git repository setting" 1>&2
-	echo -e "Note:\n\tIf local setting, you must run it under the root directory of a git repository." 1>&2
-	exit 1
+	print_bold_green "Usage:"
+	print_green "\t$0 [-h|--help]"
+	print_bold_green "Examples:"
+	print_green "1) a complete setup"
+	print_green "\t$0"
+	print_green "2) show this help info"
+	print_green "\t$0 -h"
 }
 
-if [[ ${#@} -gt 1 ]]; then
-	usage
-elif [[ ${#@} -eq 0 ]]; then
-	ARG='l'
-else
-	ARG=$1
-fi
+function config_bash() {
+	print_green "========configure bash: begin========"
+	if [[ -f /etc/profile.d/brown_liuzan_bash_config.sh ]]; then
+		rm -f /etc/profile.d/brown_liuzan_bash_config.sh.bak
+		mv /etc/profile.d/brown_liuzan_bash_config.sh  \
+			/etc/profile.d/brown_liuzan_bash_config.sh.bak
+	fi
+	cp brown_liuzan_bash_config.sh /etc/profile.d/brown_liuzan_bash_config.sh
+	source /etc/profile.d/brown_liuzan_bash_config.sh
+	print_green "========configure bash: end========"
+	echo
+}
 
-case ${ARG} in
-	l)
-		if [[ ! -d '.git' ]]; then
-		   echo "This is not a git repository root directory." 1>&2
-		   usage
-	    fi	   
-		SCOPE='local';;
-	g)
-		SCOPE='global';;
-    **)
-		usage;;
-esac
+function config_cscope() {
+	print_green "========configure cscope: begin========"
+	local vVerInfo=$(cscope --version)
+	vRc=$?
+	if [[ ${vRc} -eq 0 ]]; then
+		print_white "${vVerInfo}"
+		return
+	fi
+	case ${OS_ID} in
+	'centos' | 'rocky' | 'fedora')
+		yum install -y cscope
+		;;
+	'debian' | 'ubuntu')
+		apt install -y cscope
+		;;
+	*)
+		print_red "Unsupported OS: ${OS_ID}"
+		;;
+	esac
+	print_green "========configure cscope: end========"
+}
 
-git config --${SCOPE} user.name 'Brown-LiuZan'
-git config --${SCOPE} user.email 'brown.liuzan@outlook.com'
-git config --${SCOPE} push.default 'simple'
-git config --${SCOPE} --list
+function config_vim() {
+	print_green "========configure vim: begin========"
+	if [[ ! -d /repo/CscopeAndCtags ]]; then
+		mkdir -p /repo/CscopeAndCtags
+	fi
+	if [[ -f /root/.vimrc ]]; then
+		rm -f /root/.vimrc.bak
+		mv /root/.vimrc /root/.vimrc.bak
+	fi
+	cp vimrc.template /root/.vimrc
+	print_green "========configure vim: end========"
+	echo
+}
+
+function config_git() {
+	print_green "========configure git: begin========"
+	git config --global core.editor 'vim'
+	git config --global user.name 'brown.liuzan'
+	git config --global user.email 'brown.liuzan@outlook.com'
+	git config --global push.default 'simple'
+	git config --global --list
+	print_green "========configure git: end========"
+	echo
+}
+
+function main() {
+	for((i = 1; i <= $#; ++i)); do
+		case ${!i} in
+		'-h' | '--help')
+			usage $0
+			exit $EOK
+			;;
+		*)
+			usage $0
+			exit $EINVAL
+			;;
+		esac
+	done
+
+	config_bash
+	config_cscope
+	config_vim
+	config_git
+}
+
+main "$@"
