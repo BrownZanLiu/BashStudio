@@ -1,0 +1,487 @@
+#! /bin/bash
+
+####################################################################################################
+# Author: brown.liuzan@outlook.com
+# Version: 1.0
+# Date: 20131013
+# Copyright: cfs@csig.tencent.com
+# Description:
+#     Used to copy contents of the soure directory into the destination directory.
+#     It's a recursive and adaptively concurrent wrapper of rsync.
+####################################################################################################
+
+function get_cpu_usage() {
+    local vPercent=$(grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}')
+    echo ${vPercent%.*}
+}
+
+readonly MAX_XCOPYDIR_IN_PROGRESS=256
+readonly MAX_RSYNC_IN_PROGRESS=512
+readonly DEFAULT_DEPTH_TO_XCOPY=1000
+
+function usage() {
+    echo "Usage:"
+    echo "    xcopydir -s|--src-dir <SrcDir> -d|--dest-dir <DestDir>"
+    echo "             [-M|--create-subdirs-by-rsync]"
+    echo "             [-r|--remove-source-files]"
+    echo "             [-R|--remove-source-dirs]"
+    echo "             [-n|--maxdepth <MaxDepth>]"
+    echo "             [-c|--files-count-per-rsync <FilesPerRsync>]"
+    echo "             [--debug] [-h|--help]"
+    echo "Notes:"
+    echo "    -s|--src-dir, which directory we want to copy from"
+    echo "    -d|--dest-dir, which directory we want to copy to"
+    echo "    -M|--create-subdirs-by-rsync, use rsync to create subdirs; defaults to mkdir"  \
+         "Intended to be used only for root user for the sake of performance."
+    echo "    -r|--remove-source-files, removing synchronized source files; DANGEROUS!!!!"
+    echo "    -R|--remove-source-dirs, removing synchronized source files and dirs; DANGEROUS!!!!"
+    echo "    -n|--maxdepth <MaxDepth>, how many layers to xcopy from top to bottom; "  \
+	     "defaults to ${DEFAULT_DEPTH_TO_XCOPY}; !!!!-n incompatible with -r|-R!!!!"
+    echo "    -c|--files-count-per-rsync <FilesPerRsync>, how many files a rsync process; "  \
+	     "default to 100; valid range=[1,1000]; bigger file, less files per rsync"
+    echo "    --debug, print progress info into the standard output"
+    echo "    -h|--help, show this help info"
+}
+
+function get_subdirs() {
+    local vParentDir="$1"
+    local vDirList=/tmp/xcopydir_del_srcdir_subdir_list-$(date +%s%N).list
+    find "${vParentDir}" -maxdepth 1 -type d -print0 > ${vDirList}
+    echo ${vDirList}
+}
+
+function sync_dir_uid_gid_mode() {
+	local vSrcDir="$1"
+	local vDestDir="$2"
+	local vModeUidGid=$(stat -c %a:%u:%g "${vSrcDir}")
+	local vMode=${vModeUidGid%%:*}
+	local vUidGid=${vModeUidGid#*:}
+	local vRc
+	chmod ${vMode} "${vDestDir}"
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Fail due to chmod on ${vDestDir}"
+		return
+	fi
+	chown ${vUidGid} "${vDestDir}"
+	vRc=$?
+	if [[ ${vRc} -ne 0 ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Fail due to chown on ${vDestDir}"
+		return
+	fi
+}
+
+function check_and_delete_srcdir() {
+    local vSrcDir="$1"
+    if ! [[ -d "${vSrcDir}" ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Fail due to a non-existed target directory (Have been deleted? Check it!): ${vSrcDir}"
+        return 0
+    fi
+    local vRc
+
+    local vCntFiles=$(find "${vSrcDir}" -maxdepth 1 -type f | wc -l)
+    if [[ ${vCntFiles} -gt 0 ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Fail due to to ${vCntFiles} files exist (error indicator): ${vSrcDir}"
+        sleep 6 && exit 14
+    fi
+
+    local vSubdirListFile=$(get_subdirs ${vSrcDir})
+    echo "" >> "${vSubdirListFile}"
+    local vSubdir
+    while IFS= read -r -d '' vSubdir; do
+        echo "${vSubdir}"
+        if [[ -z ${vSubdir} ]]; then
+            continue
+        fi
+        if [[ "${vSubdir}" == "${vSrcDir}" || "${vSubdir}" == "." || "${vSubdir}" == ".." ]]; then
+            continue
+        fi
+        check_and_delete_srcdir ${vSubdir}
+    done < <(cat "${vSubdirListFile}")
+
+    rm -rf ${vSrcDir}
+    vRc=$?
+    if [[ ${vRc} -ne 0 ]]; then
+        if [[ -d ${vSrcDir} ]]; then
+            echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Failed to delete the source directory: ${vSrcDir}"
+            sleep 6 && exit 14
+        fi
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Failed to delete the source directory(might have been removed, check it): ${vSrcDir}"
+    fi
+}
+
+function process_after_sync_done() {
+    local vDelSrcDir="$1"
+    local vSrcDir="$2"
+    local vCntTasks
+    local vCheckInterval
+    local vNextPrintTime=0
+    local vCurTime
+    while true; do
+        vCntTasks=$(ps -C xcopydir | wc -l)
+        vCntTasks=$((vCntTasks - 2)) # remove headline and empty line(terminal won't count empty line)
+        vCurTime=$(date +%s)
+        if [[ ${vCntTasks} -gt 1 ]]; then
+            if [[ ${vCurTime} -gt ${vNextPrintTime} ]]; then
+                echo "[$(date +%Y-%m-%d\ %H:%M:%S)]There are ${vCntTasks} xcopydir running."
+                vNextPrintTime=$((vCurTime + 60))
+            fi
+        else
+            vCntTasks=$(ps -C rsync | wc -l)
+            vCntTasks=$((vCntTasks -1))
+            if [[ ${vCntTasks} -gt 0 ]]; then
+                if [[ ${vCurTime} -gt ${vNextPrintTime} ]]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)]There are ${vCntTasks} rsync running."
+                    vNextPrintTime=$((vCurTime + 60))
+                fi
+            else
+                break
+            fi
+        fi
+        if [[ ${vCntTasks} -ge 1024 ]]; then
+            vCheckInterval=16
+        elif [[ ${vCheckInterval} -ge 512 ]]; then
+            vCheckInterval=8
+        elif [[ ${vCheckInterval} -ge 256 ]]; then
+            vCheckInterval=4
+        elif [[ ${vCheckInterval} -ge 128 ]]; then
+            vCheckInterval=2
+        else
+            vCheckInterval=1
+        fi
+        sleep ${vCheckInterval}
+    done
+    if [[ ${vDelSrcDir} == 'true' ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Soure deletion requested, try to delete directories..."
+        check_and_delete_srcdir ${vSrcDir}
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)]All work done successfully!"
+    else
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Sync done. Check nohup.out for success."
+    fi
+}
+
+gCanRsyncPunchHolesInplace=false
+function can_rsync_set_punch_holes_inplace() {
+    local vDebug=false
+    local vVerStr=$(rsync --version | grep version | awk '{print $3}')
+    local vMajor=${vVerStr%%.*}
+    local vPatch=${vVerStr##*.}
+    local vMinor=${vVerStr%.*}
+    vMinor=${vMinor#*.}
+    if [[ ${vMajor} -gt 3 ]]; then
+        gCanRsyncPunchHolesInplace=true
+    elif [[ ${vMajor} -eq 3 && ${vMinor} -gt 1 ]]; then
+        gCanRsyncPunchHolesInplace=true
+    elif [[ ${vMajor} -eq 3 && ${vMinor} -eq 1 && ${vPatch} -ge 3 ]]; then
+        gCanRsyncPunchHolesInplace=true
+    fi
+
+    if ${vDebug}; then
+        echo "==== rsync info ===="
+        echo "rsync version: ${vMajor}.${vMinor}.${vPatch}"
+        echo "can punch holes inplace: ${gCanRsyncPunchHolesInplace}"
+        echo "==== rsync info ===="
+    fi
+}
+
+function xcopydir_main() {
+    local vThisScript=$0
+    local vDebug=false
+    local vSyncDirsWithRsync=false
+    local vInitalTask=true
+    local vOptions2Inherited="--not-initial"
+    local vAsync=true
+    local vSrcFileAction=""
+    local vDelSrcDir=false
+    local vLeftLayers=${DEFAULT_DEPTH_TO_XCOPY}
+    local vRc
+    local vSrcDir
+    local vDestDir
+	local vFilesPerRsync=100
+    local i
+    for((i=1; i<=$#; ++i)); do
+        case ${!i} in
+        '-s' | '--src-dir')
+            i=$((++i))
+            vSrcDir="${!i}"
+            ;;
+        '-d' | '--dest-dir')
+            i=$((++i))
+            vDestDir="${!i}"
+            ;;
+        '-M' | '--create-subdirs-by-rsync')
+            vSyncDirsWithRsync=true
+            vOptions2Inherited="${vOptions2Inherited} --create-subdirs-by-rsync"
+            ;;
+        '-r' | '--remove-source-files')
+            vSrcFileAction="--remove-source-files"
+            vOptions2Inherited="${vOptions2Inherited} --remove-source-files"
+            ;;
+        '-R' | '--remove-source-dirs')
+            vSrcFileAction="--remove-source-files"
+            vOptions2Inherited="${vOptions2Inherited} --remove-source-files"
+            vDelSrcDir=true
+            ;;
+        '-n' | '--maxdepth')
+            i=$((++i))
+            vLeftLayers="${!i}"
+            ;;
+		'-c' | '--files-count-per-rsync')
+            i=$((++i))
+			vFilesPerRsync="${!i}"
+			if [[ ${vFilesPerRsync} -lt 1 || ${vFilesPerRsync} -gt 1000 ]]; then
+				echo "Invalid command: ${vFilesPerRsync} not in [1, 1000]"
+				usage
+				exit 14
+			fi
+            vOptions2Inherited="${vOptions2Inherited} --files-count-per-rsync ${vFilesPerRsync}"
+			;;
+        '--debug')
+            vDebug=true
+            vOptions2Inherited="${vOptions2Inherited} --debug"
+            ;;
+        '--not-initial')
+            vInitalTask=false
+            ;;
+        '-h' | '--help')
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 14
+            ;;
+        esac
+    done
+	if [[ ${vInitalTask} == 'true' ]] &&
+	   [[ ${vLeftLayers} -ne ${DEFAULT_DEPTH_TO_XCOPY} ]] &&
+	   [[ -n "${vSrcFileAction}" || ${vDelSrcDir} == 'true' ]]; then
+		   echo "!!!!Invalid command: -n incompatible with -r|-R!!!!"
+		   echo
+		   usage
+		   exit 14
+
+	fi
+    if [[ ! -d "${vSrcDir}" ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Source dir not found: ${vSrcDir}"
+        return
+    fi
+    if [[ ! -d "${vDestDir}" ]] && [[ ${vDebug} == 'false' ]]; then
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Dest dir not found: ${vDestDir}"
+        return
+    fi
+    local vCwd=$(pwd)
+    if ! [[ "${vSrcDir}" =~ ^/.* ]]; then
+        vSrcDir="${vCwd}/${vSrcDir}"
+    fi
+    if ! [[ "${vDestDir}" =~ ^/.* ]]; then
+        vDestDir="${vCwd}/${vDestDir}"
+    fi
+
+    can_rsync_set_punch_holes_inplace
+    if ${gCanRsyncPunchHolesInplace}; then
+        vSrcFileAction="${vSrcFileAction} --sparse --whole-file "
+    fi
+
+    if [[ ${vLeftLayers} -ge 1 ]]; then
+        ${vInitalTask} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)][$$][${vLeftLayers}][init][init]${vSrcDir}"
+        vLeftLayers=$((vLeftLayers - 1))
+        vOptions2Inherited="${vOptions2Inherited} --maxdepth ${vLeftLayers} "
+    else
+        return
+    fi
+
+    # Process subdirectory recursively
+    if ${vSyncDirsWithRsync}; then
+        ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Launch subtasks for copying subdirs of ${vSrcDir} into ${vDestDir}"
+        if ${vDebug}; then
+            echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Cmd: " \
+                "rsync --archive --update --inplace --max-delete=0 --bwlimit=0 --exclude='/*/*/' -f '+ */' -f '- *' ${vSrcDir}/ ${vDestDir}/"
+        else
+            rsync --archive --update --inplace --max-delete=0 --bwlimit=0 --exclude='/*/*/' -f '+ */' -f '- *'  "${vSrcDir}/" "${vDestDir}/"
+            vRc=$?
+            if [[ ${vRc} -ne 0 ]]; then
+                echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error=${vRc}]Failed to sync subdirs themselves of ${vSrcDir}"
+                return
+            fi
+        fi
+    fi
+
+    # Bash array has no ability to handle pathname with whitespace characters.
+    # So, resort to tmp file.
+    local vNewSrcDir
+    local vDirComponent
+    local vNewDestDir
+    local vCntXcopyInstances
+    while IFS= read -r -d '' vNewSrcDir; do
+        # Must use quotes. Otherwise, the following statment will fail due to some special characters.
+        # Then, it will recur infinitely until OOM.
+        if [[ "${vNewSrcDir}" == "${vSrcDir}" ]] || [[ "${vNewSrcDir}" == '.' ]] || [[ -z "${vNewSrcDir}" ]]; then
+            continue
+        fi
+        if [[ ! -d "${vNewSrcDir}" ]]; then
+            echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Subdir might have been removed: ${vNewSrcDir}, skip it."
+            continue
+        fi
+
+        vDirComponent=$(basename "${vNewSrcDir}")
+        vNewDestDir="${vDestDir}/${vDirComponent}"
+        if [[ ${vSyncDirsWithRsync} == 'false' ]]; then
+            if ! [[ -d "${vNewDestDir}" ]]; then
+                mkdir -p "${vNewDestDir}"
+                vRc=$?
+                if [[ ${vRc} -ne 0 ]]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error]Failed to create dest dir: ${vNewDestDir}"
+                    return
+                fi
+				sync_dir_uid_gid_mode "${vNewSrcDir}" "${vNewDestDir}"
+            fi
+        fi
+
+        if [[ ${vLeftLayers} -eq 0 ]]; then
+            # This is the last layer expected to be sync.
+            # Stop recursion.
+            continue
+        fi
+
+        vCntXcopyInstances=$(ps -C xcopydir | wc -l)
+        if [[ ${vCntXcopyInstances} -ge ${MAX_XCOPYDIR_IN_PROGRESS} ]]; then
+            vAsync=false
+        else
+            vAsync=true
+        fi
+        echo "[$(date +%Y-%m-%d\ %H:%M:%S)][$$][${vLeftLayers}][${vCntXcopyInstances}][${vAsync}]${vNewSrcDir}"
+
+        ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Launch subtask for copying ${vNewSrcDir} to ${vNewDestDir}"
+        if ${vDebug}; then
+            if ${vAsync}; then
+                echo "Cmd: ${vThisScript} -s ${vNewSrcDir} -d ${vNewDestDir} ${vOptions2Inherited} &"
+                ${vThisScript} -s "${vNewSrcDir}" -d "${vNewDestDir}" ${vOptions2Inherited} &
+            else
+                echo "Cmd: ${vThisScript} -s ${vNewSrcDir} -d ${vNewDestDir} ${vOptions2Inherited}"
+                xcopydir_main -s "${vNewSrcDir}" -d "${vNewDestDir}" ${vOptions2Inherited}
+            fi
+        else
+            if ${vAsync}; then
+                ${vThisScript} -s "${vNewSrcDir}" -d "${vNewDestDir}" ${vOptions2Inherited} &
+            else
+                xcopydir_main -s "${vNewSrcDir}" -d "${vNewDestDir}" ${vOptions2Inherited}
+                vRc=$?
+                if [[ ${vRc} -ne 0 ]]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error=${vRc}]Failed to ${vThisScript} -s ${vNewSrcDir} -d ${vNewDestDir} ${vOptions2Inherited}"
+                    return
+                fi
+            fi
+        fi
+        ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Done with launching subtask for copying ${vNewSrcDir} to ${vNewDestDir}"
+    done < <(find "${vSrcDir}" -maxdepth 1 -type d -print0)
+    ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Done with launching subtasks for copying subdirs of ${vSrcDir} into ${vDestDir}"
+
+    # Process files under this directory
+    ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Launch subtask for syncing files of ${vSrcDir} into ${vDestDir}"
+    cd "${vSrcDir}" > /dev/null
+    local vWorkbook=()
+    local vCnt=0
+    local vFile
+    local vCntRsyncInstances
+    while IFS= read -r -d '' vFile; do
+        if [[ -z "${vFile}" ]]; then
+            continue
+        fi
+        vWorkbook[${vCnt}]="${vFile}"
+        vCnt=$((++vCnt))
+        if [[ ${vCnt} -lt ${vFilesPerRsync} ]]; then
+            continue
+        fi
+
+        vCntRsyncInstances=$(ps -C rsync | wc -l)
+        if [[ ${vCntRsyncInstances} -ge ${MAX_RSYNC_IN_PROGRESS} ]]; then
+            vAsync=false
+        else
+            vAsync=true
+        fi
+
+        if ${vAsync}; then
+            if ${vDebug}; then
+                ${vDebug} && echo "vSrcFileAction=${vSrcFileAction}"
+                echo "Cmd: rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} ${vWorkbook[@]} ${vDestDir} &"
+            else
+                rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} "${vWorkbook[@]}" "${vDestDir}" &
+            fi
+        else
+            if ${vDebug}; then
+                ${vDebug} && echo "vSrcFileAction=${vSrcFileAction}"
+                echo "Cmd: rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} ${vWorkbook[@]} ${vDestDir}"
+            else
+                rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} "${vWorkbook[@]}" "${vDestDir}"
+                vRc=$?
+                if [[ ${vRc} -ne 0 ]]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error=${vRc}]Failed to rsync files from ${vSrcDir} into ${vDestDir}"
+                    return
+                fi
+            fi
+        fi
+
+        vWorkbook=()
+        vCnt=0
+    done < <(find . -maxdepth 1 \( -type f -o -type l \) -print0)
+    if [[ -f "${vFile}" ]]; then
+        vWorkbook[${vCnt}]="${vFile}"
+        vCnt=$((++vCnt))
+    fi
+    if [[ ${vCnt} -gt 0 ]]; then
+        if ${vAsync}; then
+            if ${vDebug}; then
+                ${vDebug} && echo "vSrcFileAction=${vSrcFileAction}"
+                echo "Cmd: rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} ${vWorkbook[@]} ${vDestDir} &"
+            else
+                rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} "${vWorkbook[@]}" "${vDestDir}" &
+            fi
+        else
+            if ${vDebug}; then
+                ${vDebug} && echo "vSrcFileAction=${vSrcFileAction}"
+                echo "Cmd: rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} ${vWorkbook[@]} ${vDestDir}"
+            else
+                rsync --archive --update --hard-links --inplace --max-delete=0 --bwlimit=0 ${vSrcFileAction} "${vWorkbook[@]}" "${vDestDir}"
+                vRc=$?
+                if [[ ${vRc} -ne 0 ]]; then
+                    echo "[$(date +%Y-%m-%d\ %H:%M:%S)][error=${vRc}]Failed to rsync files from ${vSrcDir} into ${vDestDir}"
+                    return
+                fi
+            fi
+        fi
+    fi
+    cd - > /dev/null
+    ${vDebug} && echo "[$(date +%Y-%m-%d\ %H:%M:%S)]Done with lauching subtask for syncing files of ${vSrcDir} into ${vDestDir}"
+
+    if ${vInitalTask}; then
+        process_after_sync_done ${vDelSrcDir} ${vSrcDir}
+    fi
+
+    return
+}
+
+gDoUnitTest=false
+if [[ ${gDoUnitTest} != 'true' ]]; then
+	xcopydir_main "$@"
+else
+	#### unit test of sync_dir_uid_gid_mode ####
+	rm -rf /tmp/srcdir /tmp/destdir
+	mkdir /tmp/srcdir
+	chmod 755 /tmp/srcdir
+	chown 1000:1000 /tmp/srcdir
+	mkdir /tmp/destdir
+	sync_dir_uid_gid_mode '/tmp/srcdir' '/tmp/destdir'
+	gModeUidGid=$(stat -c %a:%u:%g '/tmp/destdir')
+	gMode=${gModeUidGid%%:*}
+	gUidGid=${gModeUidGid#*:}
+	if [[ "${gMode}" == "755" && "${gUidGid}" == "1000:1000" ]]; then
+		echo "sync_dir_uid_gid_mode works fine"
+	else
+		echo "sync_dir_uid_gid_mode doesn't work fine; ${gMode}:${gUidGid}"
+	fi
+
+	#### unit test of other functions ####
+fi
+
+
